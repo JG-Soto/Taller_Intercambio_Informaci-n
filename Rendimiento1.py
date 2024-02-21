@@ -11,8 +11,7 @@ def obtener_info_sistema():
 
     info_sistema['memoria'] = psutil.virtual_memory().percent
 
-    info_sistema['red'] = {'bytes_enviados': psutil.net_io_counters().bytes_sent,
-                           'bytes_recibidos': psutil.net_io_counters().bytes_recv}
+    info_sistema['red'] = psutil.net_io_counters().bytes_sent
 
     try:
         info_sistema['temperatura'] = psutil.sensors_temperatures()

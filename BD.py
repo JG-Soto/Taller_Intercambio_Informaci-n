@@ -1,18 +1,17 @@
 import json
-import sqlite3
+import mysql.connector
+from Rendimiento1 import obtener_info_sistema
 
 def crear_tabla_si_no_existe(conexion):
     cursor = conexion.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS datos_sistema (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            cpu REAL,
-            memoria REAL,
-            bytes_enviados INTEGER,
-            bytes_recibidos INTEGER,
+            cpu FLOAT,
+            memoria FLOAT,
+            red INT,
             temperatura TEXT,
-            mac TEXT,
-            fecha_hora TEXT
+            mac VARCHAR(255),
+            fecha_hora DATETIME
         )
     ''')
     conexion.commit()
@@ -20,20 +19,17 @@ def crear_tabla_si_no_existe(conexion):
 def insertar_informacion_sistema(conexion, informacion):
     cursor = conexion.cursor()
     cursor.execute('''
-        INSERT INTO datos_sistema (cpu, memoria, bytes_enviados, bytes_recibidos, temperatura, mac, fecha_hora)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO datos_sistema (cpu, memoria, red, temperatura, mac, fecha_hora)
+        VALUES (%s, %s, %s, %s, %s, %s)
     ''', (
         informacion['cpu'],
         informacion['memoria'],
-        informacion['red']['bytes_enviados'],
-        informacion['red']['bytes_recibidos'],
+        informacion['red'],  # Si 'informacion['red']' es el valor de bytes enviados
         json.dumps(informacion['temperatura']),
         informacion['mac'],
         informacion['fecha_hora']
     ))
     conexion.commit()
-
-from Rendimiento1 import obtener_info_sistema
 
 def consultar_datos_sistema(conexion):
     cursor = conexion.cursor()
@@ -41,17 +37,34 @@ def consultar_datos_sistema(conexion):
     datos = cursor.fetchall()
     return datos
 
-conexion = sqlite3.connect('tu_base_de_datos.db')
+# Configurar la conexión a la base de datos MySQL
+conexion = mysql.connector.connect(
+    host="mysql-grupo2.alwaysdata.net",
+    user="grupo2",
+    password="UCE2024",
+    database="grupo2_metadatos"
+)
 
-crear_tabla_si_no_existe(conexion)
+# Verificar si la conexión fue exitosa
+if conexion.is_connected():
+    print("Conexión exitosa a la base de datos MySQL")
 
-informacion = obtener_info_sistema()
+    # Crear tabla si no existe
+    crear_tabla_si_no_existe(conexion)
 
-insertar_informacion_sistema(conexion, informacion)
+    # Obtener información del sistema
+    informacion = obtener_info_sistema()
 
-datos_consultados = consultar_datos_sistema(conexion)
-for dato in datos_consultados:
-    print(dato)
+    # Insertar información en la base de datos
+    insertar_informacion_sistema(conexion, informacion)
 
-conexion.close()
+    # Consultar datos de la base de datos
+    datos_consultados = consultar_datos_sistema(conexion)
+    for dato in datos_consultados:
+        print(dato)
 
+    # Cerrar la conexión
+    conexion.close()
+    print("Conexión cerrada")
+else:
+    print("Error al conectar a la base de datos MySQL")

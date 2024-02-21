@@ -3,7 +3,7 @@ import paho.mqtt.client as mqtt
 import Rendimiento1
 from Rendimiento1 import obtener_info_sistema
 
-mqtt_broker_address = "broker.hivemq.com"
+mqtt_broker_address = "mqtt-dashboard.com"
 mqtt_port = 1883
 mqtt_topic = "Taller MQTT"
 
