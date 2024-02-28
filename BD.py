@@ -3,6 +3,7 @@ import mysql.connector
 import psutil
 import datetime
 import uuid
+import paho.mqtt.client as mqtt
 
 def obtener_info_sistema():
     info_sistema = {}
@@ -65,6 +66,62 @@ def consultar_datos_sistema(conexion):
     datos = cursor.fetchall()
     return datos
 
+# Configuración del broker MQTT
+mqtt_broker_address = "broker.hivemq.com"
+mqtt_port = 1883
+mqtt_topic = "Taller MQTT"
+
+def enviar_primeros_10_registros_a_mqtt():
+    try:
+        connection = mysql.connector.connect(
+            host="mysql-grupo2.alwaysdata.net",
+            user="grupo2",
+            password="UCE2024",
+            database="grupo2_metadatos"
+        )
+
+        if connection.is_connected():
+            cursor = connection.cursor()
+
+            try:
+                cursor.execute("""
+                    SELECT * FROM datos_sistema
+                    ORDER BY fecha_hora DESC
+                    LIMIT 10
+                """)
+                primeros_10_registros = cursor.fetchall()
+
+                registros_json = []
+                for registro in primeros_10_registros:
+                    registros_json.append({
+                        "cpu": registro[0],
+                        "memoria": registro[1],
+                        "red": registro[2],
+                        "temperatura": json.loads(registro[3]),
+                        "mac": registro[4],
+                        "fecha_hora": registro[5].strftime("%Y-%m-%d %H:%M:%S")
+                    })
+
+                mensaje_json = json.dumps(registros_json)
+                client.publish(mqtt_topic, mensaje_json)
+
+                print("Primeros 10 registros enviados al tópico MQTT.")
+
+            except mysql.connector.Error as e:
+                print("Error al ejecutar la consulta:", e)
+            finally:
+                cursor.close()
+                connection.close()
+    except mysql.connector.Error as e:
+        print("Error al conectar a MySQL:", e)
+
+# Configuración del cliente MQTT
+client = mqtt.Client()
+client.connect(mqtt_broker_address, mqtt_port, 60)
+
+# Llamar a la función para enviar los primeros 10 registros a MQTT
+enviar_primeros_10_registros_a_mqtt()
+
 # Configurar la conexión a la base de datos MySQL
 conexion = mysql.connector.connect(
     host="mysql-grupo2.alwaysdata.net",
@@ -96,3 +153,5 @@ if conexion.is_connected():
     print("Conexión cerrada")
 else:
     print("Error al conectar a la base de datos MySQL")
+
+
