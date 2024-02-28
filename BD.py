@@ -1,6 +1,34 @@
 import json
 import mysql.connector
-from Rendimiento1 import obtener_info_sistema
+import psutil
+import datetime
+import uuid
+
+def obtener_info_sistema():
+    info_sistema = {}
+
+    info_sistema['temperatura'] = obtener_temperatura()
+    info_sistema['cpu'] = psutil.cpu_percent(interval=1)
+    info_sistema['memoria'] = psutil.virtual_memory().percent
+    info_sistema['red'] = psutil.net_io_counters().bytes_sent
+    info_sistema['mac'] = ':'.join(['{:02x}'.format((uuid.getnode() >> elements) & 0xff) for elements in range(5, -1, -1)])
+    info_sistema['fecha_hora'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    return info_sistema
+
+def obtener_temperatura():
+    try:
+        temperatures = psutil.sensors_temperatures()
+        if "coretemp" in temperatures:
+            return temperatures["coretemp"][0].current
+        elif "cpu-thermal" in temperatures:
+            return temperatures["cpu-thermal"][0].current
+        else:
+            return "Informacion no disponible"
+    except Exception as e:
+        return "Informacion no disponible"
+    
+informacion = obtener_info_sistema()    
 
 def crear_tabla_si_no_existe(conexion):
     cursor = conexion.cursor()
